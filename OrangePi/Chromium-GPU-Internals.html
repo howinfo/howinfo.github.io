@@ -1,0 +1,3704 @@
+<!DOCTYPE html>
+<!-- saved from url=(0013)chrome://gpu/ -->
+<html dir="ltr" lang="en"><!--
+Copyright 2012 The Chromium Authors
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+--><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<meta name="viewport" content="width=device-width">
+<title>GPU Internals</title>
+<style>
+  * {
+    box-sizing: border-box;
+    user-select: none;
+  }
+
+  body {
+    background-color: white;
+    cursor: default;
+    font-family: sans-serif;
+    margin: 8px;
+    padding: 0;
+  }
+
+  #debug-div {
+    border: 1px solid red;
+    display: flex;
+    left: 50%;
+    position: fixed;
+    top: 0;
+  }
+</style>
+<script type="module" src="chrome://gpu/gpu_internals.js"></script>
+</head>
+<body>
+  <div id="debug-div"></div>
+  <info-view><template shadowrootmode="open"><!--_html_template_start_--><!--
+Copyright 2012 The Chromium Authors
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+-->
+<style>
+  :host {
+    display: block;
+    flex: 1;
+    overflow: auto;
+    padding: 10px;
+  }
+
+  :host * {
+    user-select: text;
+  }
+
+  :host([selected]) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  h3,
+  ul {
+    margin-bottom: 0;
+    margin-top: 0;
+  }
+
+  :host > div {
+    margin-bottom: 1em;
+  }
+
+  .feature-green {
+    color: rgb(0, 128, 0);
+  }
+
+  .feature-yellow {
+    color: rgb(128, 128, 0);
+  }
+
+  .feature-red {
+    color: rgb(255, 0, 0);
+  }
+
+  .feature-gray {
+    color: rgb(128, 128, 128);
+  }
+
+  .bg-yellow {
+    background-color: yellow;
+  }
+
+  #vulkan-info-value {
+    white-space: pre;
+  }
+
+  #copy-to-clipboard {
+    background-image: linear-gradient(#ededed, #ededed 38%, #dedede);
+    border: 1px solid rgba(0, 0, 0, .25);
+    border-radius: 2px;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08),
+        inset 0 1px 2px rgba(255, 255, 255, 0.75);
+    color: #444;
+    font: inherit;
+    margin: 0 1px 0 0;
+    min-height: 2em;
+    outline: none;
+    padding: 1px 10px;
+    text-shadow: 0 1px 0 rgb(240, 240, 240);
+    user-select: none;
+  }
+
+  #copy-to-clipboard:enabled:hover {
+    background-image: linear-gradient(#f0f0f0, #f0f0f0 38%, #e0e0e0);
+    border-color: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12),
+        inset 0 1px 2px rgba(255, 255, 255, 0.95);
+    color: black;
+  }
+
+  #copy-to-clipboard:enabled:active {
+    background-image: linear-gradient(#e7e7e7, #e7e7e7 38%, #d7d7d7);
+    box-shadow: none;
+    text-shadow: none;
+  }
+
+  #copy-to-clipboard:enabled:focus {
+    border-color: rgb(77, 144, 254);
+  }
+
+  h4.dawn-info-header {
+    color: rgb(128, 128, 0);
+    margin-bottom: 2px;
+    margin-top: 10px;
+  }
+</style>
+
+<div>
+  <button id="copy-to-clipboard">Copy Report to Clipboard</button>
+</div>
+<div>
+  <h3>Graphics Feature Status</h3>
+  <ul class="feature-status-list"><li><span>Canvas: </span><span class="feature-green">Hardware accelerated</span></li><li><span>Canvas out-of-process rasterization: </span><span class="feature-green">Enabled</span></li><li><span>Direct Rendering Display Compositor: </span><span class="feature-yellow">Disabled</span></li><li><span>Compositing: </span><span class="feature-green">Hardware accelerated</span></li><li><span>Multiple Raster Threads: </span><span class="feature-green">Enabled</span></li><li><span>OpenGL: </span><span class="feature-green">Enabled</span></li><li><span>Rasterization: </span><span class="feature-green">Hardware accelerated on all pages</span></li><li><span>Raw Draw: </span><span class="feature-yellow">Disabled</span></li><li><span>Video Decode: </span><span class="feature-green">Hardware accelerated</span></li><li><span>Video Encode: </span><span class="feature-yellow">Software only. Hardware acceleration disabled</span></li><li><span>Vulkan: </span><span class="feature-red">Disabled</span></li><li><span>WebGL: </span><span class="feature-green">Hardware accelerated</span></li><li><span>WebGL2: </span><span class="feature-green">Hardware accelerated</span></li><li><span>WebGPU: </span><span class="feature-red">Disabled</span></li></ul>
+</div>
+
+<div class="workarounds-div">
+  <h3>Driver Bug Workarounds</h3>
+  <ul class="workarounds-list"><li>clear_uniforms_before_first_program_use</li><li>count_all_in_varyings_packing</li><li>enable_webgl_timer_query_extensions</li><li>exit_on_context_lost</li><li>disabled_extension_GL_KHR_blend_equation_advanced</li><li>disabled_extension_GL_KHR_blend_equation_advanced_coherent</li></ul>
+</div>
+
+<div class="problems-div">
+  <h3>Problems Detected</h3>
+  <ul class="problems-list"><li><a>WebGPU has been disabled via blocklist or the command line.</a><br><i><span>Disabled Features: </span><span class="feature-red">webgpu</span></i></li><li><a>Accelerated video encode has been disabled, either via blocklist, about:flags or the command line.</a><br><i><span>Disabled Features: </span><span class="feature-red">video_encode</span></i></li><li><a>Clear uniforms before first program use on all platforms</a><span>: </span><a href="http://crbug.com/124764">124764</a><span>, </span><a href="http://crbug.com/349137">349137</a><br><i><span>Applied Workarounds: </span><span class="feature-yellow">clear_uniforms_before_first_program_use</span></i></li><li><a>Mesa drivers in Linux handle varyings without static use incorrectly</a><span>: </span><a href="http://crbug.com/333885">333885</a><br><i><span>Applied Workarounds: </span><span class="feature-yellow">count_all_in_varyings_packing</span></i></li><li><a>Disable KHR_blend_equation_advanced until cc shaders are updated</a><span>: </span><a href="http://crbug.com/661715">661715</a><br><i><span>Applied Workarounds: </span><span class="feature-yellow">disable(GL_KHR_blend_equation_advanced)</span><span>, </span><span class="feature-yellow">disable(GL_KHR_blend_equation_advanced_coherent)</span></i></li><li><a>Expose WebGL's disjoint_timer_query extensions on platforms with site isolation</a><span>: </span><a href="http://crbug.com/808744">808744</a><span>, </span><a href="http://crbug.com/870491">870491</a><br><i><span>Applied Workarounds: </span><span class="feature-yellow">enable_webgl_timer_query_extensions</span></i></li><li><a>Some drivers can't recover after OUT_OF_MEM and context lost</a><span>: </span><a href="http://crbug.com/893177">893177</a><br><i><span>Applied Workarounds: </span><span class="feature-yellow">exit_on_context_lost</span></i></li></ul>
+</div>
+
+<div class="angle-features-div" hidden="">
+  <h3>ANGLE Features</h3>
+  <ul class="angle-features-list"></ul>
+</div>
+
+<div class="dawn-info-div">
+  <h3>DAWN Info</h3>
+  <ul class="dawn-info-list"><br><h3>&lt;CPU&gt;  Vulkan backend - SwiftShader Device (LLVM 10.0.0)</h3><h4 class="dawn-info-header">[WebGPU Status]</h4><li>Blocklisted</li><h4 class="dawn-info-header">[Default Toggle Names]</h4><li><b>lazy_clear_resource_on_first_use:  </b><a href="https://crbug.com/dawn/145">https://crbug.com/dawn/145</a><i>:  Clears resource to zero on first usage. This initializes the resource so that no dirty bits from recycled memory is present in the new resource.</i></li><li><b>use_temporary_buffer_in_texture_to_texture_copy:  </b><a href="https://crbug.com/dawn/42">https://crbug.com/dawn/42</a><i>:  Split texture-to-texture copy into two copies: copy from source texture into a temporary buffer, and copy from the temporary buffer into the destination texture when copying between compressed textures that don't have block-aligned sizes. This workaround is enabled by default on all Vulkan drivers to solve an issue in the Vulkan SPEC about the texture-to-texture copies with compressed formats. See #1005 (https://github.com/KhronosGroup/Vulkan-Docs/issues/1005) for more details.</i></li><li><b>vulkan_use_d32s8:  </b><a href="https://crbug.com/dawn/286">https://crbug.com/dawn/286</a><i>:  Vulkan mandates support of either D32_FLOAT_S8 or D24_UNORM_S8. When available the backend will use D32S8 (toggle to on) but setting the toggle to off will make it use the D24S8 format when possible.</i></li><li><b>vulkan_use_s8:  </b><a href="https://crbug.com/dawn/666">https://crbug.com/dawn/666</a><i>:  Vulkan has a pure stencil8 format but it is not universally available. When this toggle is on, the backend will use S8 for the stencil8 format, otherwise it will fallback to D32S8 or D24S8.</i></li><li><b>disallow_unsafe_apis:  </b><a href="http://crbug.com/1138528">http://crbug.com/1138528</a><i>:  Produces validation errors on API entry points or parameter combinations that aren't considered secure yet.</i></li><li><b>use_placeholder_fragment_in_vertex_only_pipeline:  </b><a href="https://crbug.com/dawn/136">https://crbug.com/dawn/136</a><i>:  Use a placeholder empty fragment shader in vertex only render pipeline. This toggle must be enabled for OpenGL ES backend, the Vulkan Backend, and serves as a workaround by default enabled on some Metal devices with Intel GPU to ensure the depth result is correct.</i></li><li><b>use_vulkan_zero_initialize_workgroup_memory_extension:  </b><a href="https://crbug.com/dawn/1302">https://crbug.com/dawn/1302</a><i>:  Initialize workgroup memory with OpConstantNull on Vulkan when the Vulkan extension VK_KHR_zero_initialize_workgroup_memory is supported.</i></li><h4 class="dawn-info-header">[WebGPU Forced Toggles - enabled]</h4><li><b>disallow_spirv:  </b><a href="https://crbug.com/1214923">https://crbug.com/1214923</a><i>:  Disallow usage of SPIR-V completely so that only WGSL is used for shader modules. This is useful to prevent a Chromium renderer process from successfully sending SPIR-V code to be compiled in the GPU process.</i></li><h4 class="dawn-info-header">[Supported Features]</h4><li>texture-compression-bc</li><li>texture-compression-etc2</li><li>texture-compression-astc</li><li>timestamp-query</li><li>timestamp-query-inside-passes</li><li>depth-clip-control</li><li>depth32float-stencil8</li><li>indirect-first-instance</li><li>rg11b10ufloat-renderable</li><li>bgra8unorm-storage</li><li>dawn-internal-usages</li><li>dawn-native</li><li>implicit-device-sync</li><li>surface-capabilities</li></ul>
+</div>
+
+<div>
+  <h3>Version Information</h3>
+  <div id="client-info"><info-view-table><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    display: flex;
+    cursor: auto;
+    width: 100%;
+  }
+
+  div {
+    width: 100%;
+  }
+</style>
+<div id="info-view-table"><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Data exported</span>
+</div>
+<div id="value">
+  <span id="undefined">2023-08-28T05:18:35.815Z</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Chrome version</span>
+</div>
+<div id="value">
+  <span id="undefined">Chrome/114.0.5735.35</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Operating system</span>
+</div>
+<div id="value">
+  <span id="undefined">Linux 5.10.160-rk35xx</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Software rendering list URL</span>
+</div>
+<div id="value">
+  <span id="undefined">https://chromium.googlesource.com/chromium/src/+/2295354895fa3652ae47b651481831484f16d1ff/gpu/config/software_rendering_list.json</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Driver bug list URL</span>
+</div>
+<div id="value">
+  <span id="undefined">https://chromium.googlesource.com/chromium/src/+/2295354895fa3652ae47b651481831484f16d1ff/gpu/config/gpu_driver_bug_list.json</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">ANGLE commit id</span>
+</div>
+<div id="value">
+  <span id="undefined">unknown hash</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">2D graphics backend</span>
+</div>
+<div id="value">
+  <span id="undefined">Skia/114 93e7d305c32c17b3fa3e531dd967bc588948a080</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Command Line</span>
+</div>
+<div id="value">
+  <span id="undefined">/usr/lib/chromium-browser/chromium-browser --use-gl=egl --ignore-gpu-blocklist --enable-accelerated-video-decode --enable-zero-copy --enable-gpu-rasterization --enable-oop-rasterization --enable-pinch --flag-switches-begin --flag-switches-end --origin-trial-disabled-features=SecurePaymentConfirmation --enable-pinch --flag-switches-begin --flag-switches-end --desktop-startup-id=xfce4-panel/chromium-browser/2063-0-orangepi5_TIME28501</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row></div>
+<!--_html_template_end_--></template></info-view-table></div>
+</div>
+
+<div>
+  <h3>Driver Information</h3>
+  <div id="basic-info"><info-view-table><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    display: flex;
+    cursor: auto;
+    width: 100%;
+  }
+
+  div {
+    width: 100%;
+  }
+</style>
+<div id="info-view-table"><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Initialization time</span>
+</div>
+<div id="value">
+  <span id="undefined">172</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">In-process GPU</span>
+</div>
+<div id="value">
+  <span id="undefined">false</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Passthrough Command Decoder</span>
+</div>
+<div id="value">
+  <span id="undefined">false</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Sandboxed</span>
+</div>
+<div id="value">
+  <span id="undefined">false</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">GPU0</span>
+</div>
+<div id="value">
+  <span id="undefined">VENDOR= 0x0000 [Panfrost], DEVICE=0x0000 [Mali-G610 (Panfrost)], DRIVER_VENDOR=Mesa, DRIVER_VERSION=23.0.0 *ACTIVE*</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Optimus</span>
+</div>
+<div id="value">
+  <span id="undefined">false</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">AMD switchable</span>
+</div>
+<div id="value">
+  <span id="undefined">false</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">GPU CUDA compute capability major version</span>
+</div>
+<div id="value">
+  <span id="undefined">0</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Pixel shader version</span>
+</div>
+<div id="value">
+  <span id="undefined">3.10</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Vertex shader version</span>
+</div>
+<div id="value">
+  <span id="undefined">3.10</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Max. MSAA samples</span>
+</div>
+<div id="value">
+  <span id="undefined">4</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Machine model name</span>
+</div>
+<div id="value">
+  <span id="undefined"></span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Machine model version</span>
+</div>
+<div id="value">
+  <span id="undefined"></span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">GL implementation parts</span>
+</div>
+<div id="value">
+  <span id="undefined">(gl=egl-gles2,angle=none)</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Display type</span>
+</div>
+<div id="value">
+  <span id="undefined">DEFAULT</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">GL_VENDOR</span>
+</div>
+<div id="value">
+  <span id="undefined">Panfrost</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">GL_RENDERER</span>
+</div>
+<div id="value">
+  <span id="undefined">Mali-G610 (Panfrost)</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">GL_VERSION</span>
+</div>
+<div id="value">
+  <span id="undefined">OpenGL ES 3.1 Mesa 23.0.0-devel</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">GL_EXTENSIONS</span>
+</div>
+<div id="value">
+  <span id="undefined">GL_EXT_blend_minmax GL_EXT_multi_draw_arrays GL_EXT_texture_filter_anisotropic GL_EXT_texture_compression_s3tc GL_EXT_texture_compression_dxt1 GL_EXT_texture_compression_rgtc GL_EXT_texture_format_BGRA8888 GL_OES_compressed_ETC1_RGB8_texture GL_OES_depth24 GL_OES_element_index_uint GL_OES_fbo_render_mipmap GL_OES_mapbuffer GL_OES_rgb8_rgba8 GL_OES_standard_derivatives GL_OES_stencil8 GL_OES_texture_3D GL_OES_texture_float GL_OES_texture_float_linear GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_texture_npot GL_OES_vertex_half_float GL_EXT_draw_instanced GL_EXT_texture_sRGB_decode GL_OES_EGL_image GL_OES_depth_texture GL_OES_packed_depth_stencil GL_EXT_texture_type_2_10_10_10_REV GL_NV_conditional_render GL_OES_get_program_binary GL_APPLE_texture_max_level GL_EXT_discard_framebuffer GL_EXT_read_format_bgra GL_NV_pack_subimage GL_EXT_frag_depth GL_NV_fbo_color_attachments GL_OES_EGL_image_external GL_OES_EGL_sync GL_OES_vertex_array_object GL_ANGLE_pack_reverse_row_order GL_ANGLE_texture_compression_dxt3 GL_ANGLE_texture_compression_dxt5 GL_EXT_occlusion_query_boolean GL_EXT_texture_rg GL_EXT_unpack_subimage GL_NV_draw_buffers GL_NV_read_buffer GL_NV_read_depth GL_NV_read_depth_stencil GL_NV_read_stencil GL_EXT_draw_buffers GL_EXT_map_buffer_range GL_KHR_debug GL_KHR_texture_compression_astc_ldr GL_NV_pixel_buffer_object GL_OES_depth_texture_cube_map GL_OES_required_internalformat GL_OES_surfaceless_context GL_EXT_color_buffer_float GL_EXT_debug_label GL_EXT_sRGB_write_control GL_EXT_separate_shader_objects GL_EXT_shader_framebuffer_fetch GL_EXT_shader_implicit_conversions GL_EXT_shader_integer_mix GL_EXT_compressed_ETC1_RGB8_sub_texture GL_EXT_draw_buffers_indexed GL_EXT_draw_elements_base_vertex GL_EXT_gpu_shader5 GL_EXT_primitive_bounding_box GL_EXT_shader_io_blocks GL_EXT_texture_border_clamp GL_EXT_texture_buffer GL_EXT_texture_norm16 GL_EXT_texture_view GL_KHR_blend_equation_advanced GL_KHR_blend_equation_advanced_coherent GL_KHR_context_flush_control GL_NV_image_formats GL_NV_shader_noperspective_interpolation GL_OES_draw_buffers_indexed GL_OES_draw_elements_base_vertex GL_OES_gpu_shader5 GL_OES_primitive_bounding_box GL_OES_sample_shading GL_OES_sample_variables GL_OES_shader_io_blocks GL_OES_shader_multisample_interpolation GL_OES_texture_border_clamp GL_OES_texture_buffer GL_OES_texture_stencil8 GL_OES_texture_storage_multisample_2d_array GL_OES_texture_view GL_EXT_blend_func_extended GL_EXT_buffer_storage GL_EXT_float_blend GL_EXT_texture_sRGB_R8 GL_EXT_texture_sRGB_RG8 GL_KHR_no_error GL_KHR_texture_compression_astc_sliced_3d GL_OES_EGL_image_external_essl3 GL_OES_shader_image_atomic GL_EXT_disjoint_timer_query GL_EXT_multisampled_render_to_texture GL_EXT_multisampled_render_to_texture2 GL_EXT_texture_compression_s3tc_srgb GL_MESA_shader_integer_functions GL_EXT_clip_control GL_EXT_color_buffer_half_float GL_EXT_texture_compression_bptc GL_EXT_texture_mirror_clamp_to_edge GL_KHR_parallel_shader_compile GL_EXT_EGL_image_storage GL_EXT_shader_framebuffer_fetch_non_coherent GL_INTEL_blackhole_render GL_MESA_framebuffer_flip_y GL_EXT_depth_clamp GL_MESA_bgra </span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Disabled Extensions</span>
+</div>
+<div id="value">
+  <span id="undefined">GL_KHR_blend_equation_advanced GL_KHR_blend_equation_advanced_coherent</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Disabled WebGL Extensions</span>
+</div>
+<div id="value">
+  <span id="undefined"></span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Window system binding vendor</span>
+</div>
+<div id="value">
+  <span id="undefined">Mesa Project</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Window system binding version</span>
+</div>
+<div id="value">
+  <span id="undefined">1.4</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Window system binding extensions</span>
+</div>
+<div id="value">
+  <span id="undefined">EGL_ANDROID_blob_cache EGL_ANDROID_native_fence_sync EGL_CHROMIUM_sync_control EGL_ANGLE_sync_control_rate EGL_EXT_buffer_age EGL_EXT_image_dma_buf_import EGL_EXT_image_dma_buf_import_modifiers EGL_EXT_swap_buffers_with_damage EGL_KHR_cl_event2 EGL_KHR_config_attribs EGL_KHR_context_flush_control EGL_KHR_create_context EGL_KHR_create_context_no_error EGL_KHR_fence_sync EGL_KHR_get_all_proc_addresses EGL_KHR_gl_colorspace EGL_KHR_gl_renderbuffer_image EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_3D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_image EGL_KHR_image_base EGL_KHR_image_pixmap EGL_KHR_no_config_context EGL_KHR_partial_update EGL_KHR_reusable_sync EGL_KHR_surfaceless_context EGL_KHR_swap_buffers_with_damage EGL_EXT_pixel_format_float EGL_KHR_wait_sync EGL_MESA_configless_context EGL_MESA_drm_image EGL_MESA_image_dma_buf_export EGL_MESA_query_driver EGL_NOK_texture_from_pixmap EGL_WL_bind_wayland_display </span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">XDG_CURRENT_DESKTOP</span>
+</div>
+<div id="value">
+  <span id="undefined">XFCE</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">XDG_SESSION_TYPE</span>
+</div>
+<div id="value">
+  <span id="undefined">x11</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">GDMSESSION</span>
+</div>
+<div id="value">
+  <span id="undefined">xfce</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Ozone platform</span>
+</div>
+<div id="value">
+  <span id="undefined">x11</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Direct rendering version</span>
+</div>
+<div id="value">
+  <span id="undefined">unknown</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Reset notification strategy</span>
+</div>
+<div id="value">
+  <span id="undefined">0x0000</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">GPU process crash count</span>
+</div>
+<div id="value">
+  <span id="undefined">0</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">gfx::BufferFormats supported for allocation and texturing</span>
+</div>
+<div id="value">
+  <span id="undefined">R_8: not supported,  R_16: not supported,  RG_88: not supported,  RG_1616: not supported,  BGR_565: not supported,  RGBA_4444: not supported,  RGBX_8888: not supported,  RGBA_8888: not supported,  BGRX_8888: not supported,  BGRA_1010102: not supported,  RGBA_1010102: not supported,  BGRA_8888: not supported,  RGBA_F16: not supported,  YVU_420: not supported,  YUV_420_BIPLANAR: not supported,  YUVA_420_TRIPLANAR: not supported,  P010: not supported</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row></div>
+<!--_html_template_end_--></template></info-view-table></div>
+</div>
+
+<div>
+  <h3>Compositor Information</h3>
+  <div id="compositor-info"><info-view-table><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    display: flex;
+    cursor: auto;
+    width: 100%;
+  }
+
+  div {
+    width: 100%;
+  }
+</style>
+<div id="info-view-table"><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Tile Update Mode</span>
+</div>
+<div id="value">
+  <span id="undefined">Zero-copy</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Partial Raster</span>
+</div>
+<div id="value">
+  <span id="undefined">Enabled</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row></div>
+<!--_html_template_end_--></template></info-view-table></div>
+</div>
+
+<div>
+  <h3>GpuMemoryBuffers Status</h3>
+  <div id="gpu-memory-buffer-info"><info-view-table><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    display: flex;
+    cursor: auto;
+    width: 100%;
+  }
+
+  div {
+    width: 100%;
+  }
+</style>
+<div id="info-view-table"><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">R_8</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">R_16</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">RG_88</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">RG_1616</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">BGR_565</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">RGBA_4444</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">RGBX_8888</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">RGBA_8888</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">BGRX_8888</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">BGRA_1010102</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">RGBA_1010102</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">BGRA_8888</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">RGBA_F16</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">YVU_420</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">YUV_420_BIPLANAR</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">YUVA_420_TRIPLANAR</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">P010</span>
+</div>
+<div id="value">
+  <span id="undefined">Software only</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row></div>
+<!--_html_template_end_--></template></info-view-table></div>
+</div>
+
+<div>
+  <h3>Display(s) Information</h3>
+  <div id="display-info"><info-view-table><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    display: flex;
+    cursor: auto;
+    width: 100%;
+  }
+
+  div {
+    width: 100%;
+  }
+</style>
+<div id="info-view-table"><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Info </span>
+</div>
+<div id="value">
+  <span id="undefined">Display[8564250151651394] bounds=[0,0 1920x1080], workarea=[0,31 1920x1049], scale=2, rotation=0, panel_rotation=0 external.</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Color space (all)</span>
+</div>
+<div id="value">
+  <span id="undefined">{primaries:BT709, transfer:SRGB, matrix:RGB, range:FULL}</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Buffer format (all)</span>
+</div>
+<div id="value">
+  <span id="undefined">BGRA_8888</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Color volume</span>
+</div>
+<div id="value">
+  <span id="undefined">{name:'srgb', r:[0.6400, 0.3300], g:[0.3000, 0.6000], b:[0.1500, 0.3300], w:[0.3127, 0.3290]}</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">SDR white level in nits</span>
+</div>
+<div id="value">
+  <span id="undefined">203</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">HDR relative maximum luminance</span>
+</div>
+<div id="value">
+  <span id="undefined">1</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Bits per color component</span>
+</div>
+<div id="value">
+  <span id="undefined">8</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Bits per pixel</span>
+</div>
+<div id="value">
+  <span id="undefined">24</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Refresh Rate in Hz</span>
+</div>
+<div id="value">
+  <span id="undefined">60</span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row></div>
+<!--_html_template_end_--></template></info-view-table></div>
+</div>
+
+<div>
+  <h3>Video Acceleration Information</h3>
+  <div id="video-acceleration-info"><info-view-table><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    display: flex;
+    cursor: auto;
+    width: 100%;
+  }
+
+  div {
+    width: 100%;
+  }
+</style>
+<div id="info-view-table"><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Decoding</span>
+</div>
+<div id="value">
+  <span id="undefined"></span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row><info-view-table-row><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    border: none;
+    display: flex;
+  }
+
+  #array {
+    width: 100%;
+  }
+
+  #title {
+    overflow-x: auto;
+    width: 25%;
+  }
+
+  #value {
+    overflow-x: auto;
+    width: 75%;
+  }
+
+  :host(:not([is-array])) #array {
+    display: none;
+  }
+
+  :host([is-array]) #title,
+  :host([is-array]) #value {
+    display: none;
+  }
+
+  div {
+    border: 1px solid #777;
+    margin-inline-end: -1px;
+    margin-top: -1px;
+  }
+
+  .row-title {
+    font-weight: bold;
+  }
+</style>
+<div id="title">
+  <span class="row-title">Encoding</span>
+</div>
+<div id="value">
+  <span id="undefined"></span>
+</div>
+<div id="array">
+  <span class="row-title"></span>
+</div>
+<!--_html_template_end_--></template></info-view-table-row></div>
+<!--_html_template_end_--></template></info-view-table></div>
+</div>
+
+<div>
+  <h3>Vulkan Information</h3>
+  <div id="vulkan-info"><info-view-table><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    display: flex;
+    cursor: auto;
+    width: 100%;
+  }
+
+  div {
+    width: 100%;
+  }
+</style>
+<div id="info-view-table"></div>
+<!--_html_template_end_--></template></info-view-table></div>
+</div>
+
+<div>
+  <h3>Device Performance Information</h3>
+  <div id="device-perf-info"><info-view-table><template shadowrootmode="open"><!--_html_template_start_--><style>
+  :host {
+    display: flex;
+    cursor: auto;
+    width: 100%;
+  }
+
+  div {
+    width: 100%;
+  }
+</style>
+<div id="info-view-table"></div>
+<!--_html_template_end_--></template></info-view-table></div>
+</div>
+
+<div class="diagnostics" hidden="">
+  <h3>Diagnostics</h3>
+  <div class="diagnostics-loading">... loading ...</div>
+  <div id="diagnostics-table">None</div>
+</div>
+
+<div class="basic-info-for-hardware-gpu-div" hidden="">
+  <h3>Driver Information for Hardware GPU</h3>
+  <div id="basic-info-for-hardware-gpu"></div>
+</div>
+
+<div class="feature-status-for-hardware-gpu-div" hidden="">
+  <h3>Graphics Feature Status for Hardware GPU</h3>
+  <ul class="feature-status-for-hardware-gpu-list"></ul>
+</div>
+
+<div class="workarounds-for-hardware-gpu-div" hidden="">
+  <h3>Driver Bug Workarounds for Hardware GPU</h3>
+  <ul class="workarounds-for-hardware-gpu-list"></ul>
+</div>
+
+<div class="problems-for-hardware-gpu-div" hidden="">
+  <h3>Problems Detected for Hardware GPU</h3>
+  <ul class="problems-for-hardware-gpu-list"></ul>
+</div>
+
+<div id="log-messages">
+  <h3>Log Messages</h3>
+  <ul><li><span>[2623:2623:0828/073718.234714:ERROR:gl_display.cc(520)] : EGL Driver message (Error) eglQueryDeviceAttribEXT: eglQueryDeviceAttribEXT
+</span></li><li><span>[2623:2623:0828/073718.234916:ERROR:gl_angle_util_vulkan.cc(189)] : Failed to retrieve vkGetInstanceProcAddr
+</span></li><li><span>[2623:2623:0828/073718.234992:ERROR:vulkan_instance.cc(91)] : Failed to get vkGetInstanceProcAddr pointer from ANGLE.
+</span></li><li><span>[2623:2623:0828/073718.237670:WARNING:sandbox_linux.cc(393)] : InitializeSandbox() called with multiple threads in process gpu-process.
+</span></li><li><span>[2623:2623:0828/073756.523917:ERROR:gl_surface_presentation_helper.cc(260)] : GetVSyncParametersIfAvailable() failed for 1 times!
+</span></li><li><span>[2623:2650:0828/074202.491248:ERROR:x11_software_bitmap_presenter.cc(142)] : XGetWindowAttributes failed for window 46137370
+</span></li><li><span>[2623:2650:0828/074202.493502:WARNING:connection.cc(41)] : X error received.  Request: CreateGCRequest, Error: DrawableError{.sequence = 36, .bad_value = 46137370, .minor_opcode = 0, .major_opcode = 55}
+</span></li><li><span>[2623:2650:0828/074202.494908:WARNING:connection.cc(41)] : X error received.  Request: FreeGCRequest, Error: GContextError{.sequence = 38, .bad_value = 52428800, .minor_opcode = 0, .major_opcode = 60}
+</span></li><li><span>[2623:2623:0828/074317.014083:WARNING:connection.cc(41)] : X error received.  Request: DestroyWindowRequest, Error: WindowError{.sequence = 240, .bad_value = 50331653, .minor_opcode = 0, .major_opcode = 4}
+</span></li><li><span>[2623:2623:0828/074547.313014:ERROR:gl_surface_presentation_helper.cc(260)] : GetVSyncParametersIfAvailable() failed for 2 times!
+</span></li><li><span>[2623:2623:0828/075934.357282:ERROR:gl_surface_presentation_helper.cc(260)] : GetVSyncParametersIfAvailable() failed for 3 times!
+</span></li><li><span>[2623:2623:0828/081146.848872:ERROR:shared_image_manager.cc(217)] : SharedImageManager::ProduceSkia: Trying to Produce a Skia representation from a non-existent mailbox.
+</span></li><li><span>[2623:2623:0828/081146.850766:ERROR:shared_image_manager.cc(217)] : SharedImageManager::ProduceSkia: Trying to Produce a Skia representation from a non-existent mailbox.
+</span></li><li><span>[2623:2650:0828/081835.517496:WARNING:connection.cc(41)] : X error received.  Request: Shm::PutImageRequest, Error: DrawableError{.sequence = 100, .bad_value = 46137410, .minor_opcode = 3, .major_opcode = 130}
+</span></li></ul>
+</div>
+<!--_html_template_end_--></template></info-view>
+
+
+</body></html>
